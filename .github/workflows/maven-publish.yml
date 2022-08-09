@@ -2,9 +2,9 @@ name: GitHub Actions Demo
 on: [push]
 
 env:
-  image: simple-java-maven
+  image: simple-java-http-server
   tag: openjdk-19-jdk-alpine3.15
-  java-version: '11'
+  java-version: '19'
   maven-version: '3.8.6'
   distribution: 'temurin'
   
@@ -22,8 +22,6 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN}}
         with:
           args: --severity-threshold=low
-
-
   Explore-GitHub-Actions:
     runs-on: self-hosted 
     steps:
@@ -70,28 +68,68 @@ jobs:
         with:
           image:  ${{ env.image }}:${{ env.tag }}
           args: --file=Dockerfile
-      - 
+      # -
+      #   name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v2
+      # -
+      #   name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v2
+      # -
+      #   name: Login to DockerHub
+      #   uses: docker/login-action@v2
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERIO_PASSWORD}}
+      # -
+      #   name: Build and push
+      #   uses: docker/build-push-action@v3
+      #   with:
+      #     context: "{{defaultContext}}"
+      #     push: true
+      #     tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.image }}:${{ env.tag }}
+      -
         name: Kaniko build to Artifactory
-        uses: aevea/action-kaniko@master
+        uses: ./.github/actions/kaniko
         with:
           image: ${{ env.image }}
           tag:   ${{ env.tag }}
-          registry: ${{ secrets.ARTIFACTORY_DOCKER_REPO }}
           username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_SECRET}}
+          password: ${{ secrets.DOCKER_SECRET }}
+          registry: ${{ secrets.ARTIFACTORY_DOCKER_REPO }}
           cache: true
-
-      - 
-        name: Simple Helm
-        uses: azure/setup-helm@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }} # only needed if version is 'latest'
-        id: install
-      - run: helm version 
-      - run: helm repo add default-helm ${{secrets.ARTIFACTORY_HELM }} --username brendan.rooney@gmail.com --password AKCp8mZn7j64vszaRjtqqG1mzdAg6UeAWQDUh8dxSUNJs8k9twyGj8uCvrWZyMbFPjrDcmV62
-
+          cache_registry: aevea/cache
       - 
         name: List files in the repository
         run: |
           ls -lR ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
+  # helm-suite:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: Helm Artifactory check
+  #     uses: mbovo/action-helm-artifactory@main
+  #     with:
+  #       action: check_push
+  #     env:
+  #       CHART_DIR: ./example-helm-chart
+  #       ARTIFACTORY_URL:      https://crezz.jfrog.io/artifactory/default-helm-local/
+  #       ARTIFACTORY_USERNAME: ${{ secrets.HELM_USERNAME }}
+  #       ARTIFACTORY_PASSWORD: ${{ secrets.HELM_SECRET }}
+  #       ACTION: check_push
+  # kaniko:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     -
+  #       name: Kaniko build to Artifactory
+  #       uses: aevea/action-kaniko@master
+  #       with:
+  #         image: ${{ env.image }}
+  #         tag:   ${{ env.tag }}
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_SECRET }}
+  #         registry: ${{ secrets.ARTIFACTORY_DOCKER_REPO }}
+  #         cache: true
+  #         cache_registry: aevea/cache
+
+  
