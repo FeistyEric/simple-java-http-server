@@ -52,6 +52,10 @@ jobs:
         name: Build with Maven
         run: mvn -B package --file pom.xml
       - 
+        name: List files in the repository
+        run: |
+          ls -lR ${{ github.workspace }}
+      - 
         name: Docker build locally for Snyk Scan
         run:  docker build . -t ${{ env.image }}:${{ env.tag }}
       - 
